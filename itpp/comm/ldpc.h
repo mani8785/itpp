@@ -71,6 +71,7 @@ namespace itpp
 class ITPP_EXPORT LDPC_Parity
 {
   friend class LDPC_Code;
+  friend class LDPC_Code_LUT;
 public:
   //! Default constructor
   LDPC_Parity(): init_flag(false) {}

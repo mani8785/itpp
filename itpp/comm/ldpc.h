@@ -577,6 +577,12 @@ public:
   LDPC_Generator_Systematic(LDPC_Parity* const H,
                             bool natural_ordering = false,
                             const ivec& ind = "");
+  //! Constructor from GF2mat
+  LDPC_Generator_Systematic(const GF2mat& G_): LDPC_Generator("systematic"),G()
+  {
+        G = G_;
+        mark_initialized();
+  }
 
   //! Virtual destructor
   virtual ~LDPC_Generator_Systematic() {}

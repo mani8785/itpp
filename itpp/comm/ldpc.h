@@ -586,10 +586,7 @@ public:
 
   //! Virtual destructor
   virtual ~LDPC_Generator_Systematic() {}
-    
-  //! Get the Generator Matrix
-    GF2mat get_G() const{return G;}
-    
+
   //! Generator specific encode function
   virtual void encode(const bvec &input, bvec &output);
 

@@ -542,14 +542,17 @@ public:
 
   //! Check if generator is initialized
   bool is_initialized() const {return init_flag;};
-private:
-  bool init_flag;  //!< True if generator is initialized
-  std::string* type;  //!< Generator type
-protected:
+    
   //! Save generator data to a file
   virtual void save(const std::string& filename) const = 0;
   //! Read generator data from a file
   virtual void load(const std::string& filename) = 0;
+    
+private:
+  bool init_flag;  //!< True if generator is initialized
+  std::string* type;  //!< Generator type
+
+  
 };
 
 
@@ -619,12 +622,12 @@ public:
   */
   ivec construct(LDPC_Parity* const H, bool natural_ordering = false,
                  const ivec& ind = "");
-
-protected:
+    
   //! Save generator data to a file
   virtual void save(const std::string& filename) const;
   //! Read generator data from a file
   virtual void load(const std::string& filename);
+
 
 private:
   GF2mat G; // the matrix is stored in transposed form
@@ -661,7 +664,6 @@ public:
   //! Construct the BLDPC generator
   void construct(const BLDPC_Parity* const H);
 
-protected:
   //! Save generator data to a file
   void save(const std::string &filename) const;
   //! Read generator data from a file

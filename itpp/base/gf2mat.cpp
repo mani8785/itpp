@@ -743,6 +743,40 @@ found:
 }
 
 
+int GF2mat::row_echelon(bool keep_zero_rows){
+    int mm=0;
+    int nn=0;
+    
+    while(mm<nrows && nn<ncols){
+        // Find the first row that has a '1' in column nn
+        ivec idx = mm + find(get_col(nn).get(mm,nrows-1));
+        if( length(idx)>0 ){
+            int kk = idx(0);
+            // Swap rows
+            swap_rows(mm, kk);
+            // Subtract row from other rows
+            idx.del(0);
+            for(int ii=0; ii<length(idx); ii++)
+                set_row(idx(ii),  get_row(idx(ii)) - get_row(mm) );
+            mm++;
+            nn++;
+        }
+        else{
+            nn++;
+        }
+    }
+    // Remove zero rows
+    mm = nrows-1;
+    while(sum(to_ivec(get_row(mm))) == 0){
+        mm--;
+    }
+    if( keep_zero_rows == false){
+        set_size(mm+1, ncols, true);
+        nrows = mm+1;
+    }
+    
+    return mm+1;
+}
 
 
 GF2mat GF2mat::inverse() const

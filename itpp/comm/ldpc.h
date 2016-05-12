@@ -129,6 +129,10 @@ public:
                     "LDPC_Parity::get_ncheck(): Internal error");
     return ncheck;
   }
+    
+  int get_ncheck_lin_indep() const {
+        return GF2mat(full(H)).row_rank();
+  }
 
   //! Set element (i,j) of the parity check matrix to value
   void set(int i, int j, bin value);
@@ -151,7 +155,7 @@ public:
 
   //! Get the code rate
   double get_rate() const {
-    return (1.0 - static_cast<double>(ncheck) / nvar);
+    return (1.0 - static_cast<double>(get_ncheck_lin_indep()) / nvar);
   }
 
   //! Import matrix from \c GF2mat_sparse_alist format
@@ -918,7 +922,7 @@ public:
 
   //! Get the coderate
   double get_rate() const {
-    return (1.0 - static_cast<double>(ncheck) / nvar);
+    return (1.0 - static_cast<double>(ncheck_lin_indep) / nvar);
   }
 
   //! Get the number of variable nodes
@@ -928,7 +932,7 @@ public:
   int get_ncheck() const { return ncheck; }
 
   //! Get the number of information bits per codeword
-  int get_ninfo() const { return nvar - ncheck; }
+  int get_ninfo() const { return nvar - ncheck_lin_indep; }
 
   //! Return the decoding method
   std::string get_decoding_method() const { return dec_method; }
@@ -956,7 +960,8 @@ private:
   bool H_defined;  //!< true if parity check matrix is defined
   bool G_defined;  //!< true if generator is defined
   int nvar;   //!< Number of variable nodes
-  int ncheck;   //!< Number of check nodes
+  int ncheck;   //!< Number of check nodes. Relevant for the decoding algorithm
+  int ncheck_lin_indep;   //!< Number of linearly independent check nodes. Relevant for the Coderate and encoding
   LDPC_Generator *G;  //!< Generator object pointer
 
   // decoder parameters

@@ -39,7 +39,7 @@ namespace itpp
  * This has to be global since it is used in LDPC_Generator and LDPC_Code
  * classes
  */
-static const int LDPC_binary_file_version = 2;
+static const int LDPC_binary_file_version = 3;
 
 // ---------------------------------------------------------------------------
 // LDPC_Parity
@@ -897,9 +897,13 @@ ivec LDPC_Generator_Systematic::construct(LDPC_Parity* const H,
 {
   int nvar = H->get_nvar();
   int ncheck = H->get_ncheck();
-
+  int ncheck_lin_indep = H->get_ncheck_lin_indep();
   // create dense representation of parity check matrix
   GF2mat Hd(H->get_H());
+    
+  // remove linearly dependent rows
+  int parity_check_rank = Hd.row_echelon();
+  it_assert(parity_check_rank == ncheck_lin_indep, "LDPC_Generator_Systematic::construct(): Rank mismatch");
 
   // -- Determine initial column ordering --
   ivec col_order(nvar);
@@ -922,8 +926,8 @@ ivec LDPC_Generator_Systematic::construct(LDPC_Parity* const H,
   // Now partition P as P=[P1 P2]. Then find G so [P1 P2][I G]'=0.
 
   // -- Create P1 and P2 --
-  GF2mat P1; //(ncheck,nvar-ncheck);      // non-invertible part
-  GF2mat P2; //(ncheck,ncheck);           // invertible part
+  GF2mat P1; //(ncheck_lin_indep, nvar-ncheck_lin_indep);      // non-invertible part
+  GF2mat P2; //(ncheck_lin_indep, ncheck_lin_indep);           // invertible part
 
   it_info_debug("Computing a systematic generator matrix...");
 
@@ -931,57 +935,59 @@ ivec LDPC_Generator_Systematic::construct(LDPC_Parity* const H,
   ivec perm;
   GF2mat T, U;
   for (int k = 0; k < nvar; k++) {
-    it_error_if(j1 >= nvar - ncheck, "LDPC_Generator_Systematic::construct(): "
+    it_error_if(j1 >= nvar - ncheck_lin_indep, "LDPC_Generator_Systematic::construct(): "
                 "Unable to obtain enough independent columns.");
 
     bvec c = Hd.get_col(col_order(k));
     if (j2 == 0) {     // first column in P2 is number col_order(k)
       P2 = GF2mat(c);
       P2.T_fact(T, U, perm);/* return value not used */
-      actual_ordering(k) = nvar - ncheck;
+      actual_ordering(col_order(k)) = nvar - ncheck_lin_indep;
       j2++;
     }
     else {
-      if (j2 < ncheck) {
+      if (j2 < ncheck_lin_indep) {
         if (P2.T_fact_update_addcol(T, U, perm, c)) {
           P2 = P2.concatenate_horizontal(c);
-          actual_ordering(k) = nvar - ncheck + j2;
+          actual_ordering(col_order(k)) = nvar - ncheck_lin_indep + j2;
           j2++;
           continue;
         }
       }
       if (j1 == 0) {
         P1 = GF2mat(c);
-        actual_ordering(k) = j1;
+        actual_ordering(col_order(k)) = j1;
       }
       else {
         P1 = P1.concatenate_horizontal(c);
-        actual_ordering(k) = j1;
+        actual_ordering(col_order(k)) = j1;
       }
       j1++;
     }
   }
 
+  it_assert_debug(parity_check_rank == j2 , "LDPC_Generator_Systematic::construct(): Rank mismatch");
   it_info_debug("Rank of parity check matrix: " << j2);
 
   // -- Compute the systematic part of the generator matrix --
   G = (P2.inverse() * P1).transpose();
 
   // -- Permute the columns of the parity check matrix --
-  GF2mat P = P1.concatenate_horizontal(P2);
+  LDPC_Parity H_old = *H;;
+    
   *H = LDPC_Parity(ncheck, nvar);
-  // brute force copy from P to H
+  // brute force copy from H_old to H
   for (int i = 0; i < ncheck; i++) {
     for (int j = 0; j < nvar; j++) {
-      if (P.get(i, j)) {
-        H->set(i, j, 1);
+      if (H_old.get(i, j)) {
+        H->set(i, actual_ordering(j), 1);
       }
     }
   }
 
   // -- Check that the result was correct --
   it_assert_debug((GF2mat(H->get_H())
-                   * (gf2dense_eye(nvar - ncheck).concatenate_horizontal(G)).transpose()).is_zero(),
+                   * (gf2dense_eye(nvar - ncheck_lin_indep).concatenate_horizontal(G)).transpose()).is_zero(),
                   "LDPC_Generator_Systematic::construct(): Incorrect generator matrix G");
 
   G = G.transpose();  // store the generator matrix in transposed form
@@ -1259,6 +1265,7 @@ void LDPC_Code::load_code(const std::string& filename,
   f >> Name("G_defined") >> G_defined;
   f >> Name("nvar") >> nvar;
   f >> Name("ncheck") >> ncheck;
+  f >> Name("ncheck_lin_indep") >> ncheck_lin_indep;
   f >> Name("C") >> C;
   f >> Name("V") >> V;
   f >> Name("sumX1") >> sumX1;
@@ -1299,7 +1306,7 @@ void LDPC_Code::save_code(const std::string& filename) const
   f << Name("H_defined") << H_defined;
   f << Name("G_defined") << G_defined;
   f << Name("nvar") << nvar;
-  f << Name("ncheck") << ncheck;
+  f << Name("ncheck_lin_indep") << ncheck_lin_indep;
   f << Name("C") << C;
   f << Name("V") << V;
   f << Name("sumX1") << sumX1;
@@ -1365,7 +1372,7 @@ void LDPC_Code::decode(const vec &llr_in, bvec &syst_bits)
   QLLRvec qllrin = llrcalc.to_qllr(llr_in);
   QLLRvec qllrout;
   bp_decode(qllrin, qllrout);
-  syst_bits = (qllrout.left(nvar - ncheck) < 0);
+  syst_bits = (qllrout.left(nvar - ncheck_lin_indep) < 0);
 }
 
 bvec LDPC_Code::decode(const vec &llr_in)
@@ -1691,6 +1698,7 @@ void LDPC_Code::decoder_parameterization(const LDPC_Parity* const Hmat)
   sumX2 = Hmat->sumX2;
   nvar = Hmat->nvar; //get_nvar();
   ncheck = Hmat->ncheck; //get_ncheck();
+  ncheck_lin_indep = Hmat->get_ncheck_lin_indep();
   int cmax = max(sumX1);
   int vmax = max(sumX2);
 
@@ -1768,14 +1776,14 @@ void LDPC_Code::integrity_check()
   if (G_defined) {
     it_info_debug("LDPC_Code::integrity_check(): Checking integrity of "
                   "the LDPC_Parity and LDPC_Generator data");
-    bvec bv(nvar - ncheck), cw;
+    bvec bv(nvar - ncheck_lin_indep), cw;
     bv.clear();
     bv(0) = 1;
-    for (int i = 0; i < nvar - ncheck; i++) {
+    for (int i = 0; i < nvar - ncheck_lin_indep; i++) {
       G->encode(bv, cw);
       it_assert(syndrome_check(cw),
                 "LDPC_Code::integrity_check(): Syndrome check failed");
-      bv.shift_right(bv(nvar - ncheck - 1));
+      bv.shift_right(bv(nvar - ncheck_lin_indep - 1));
     }
   }
   else {

@@ -379,6 +379,15 @@ public:
   */
   bool T_fact_update_addcol(GF2mat &T, GF2mat &U,
                             ivec &P, bvec newcol) const;
+    
+  /*!  \brief Put matrix into row-reduced echelon form
+  
+  This function applies linear row operations to remove linearly dependent
+  rows, effectively making the matrix of full row rank. The return value
+  is the number of linearly independent rows.
+  */
+  int row_echelon(bool keep_zero_rows = false);
+  
 
   // ----- Operators -----------
 

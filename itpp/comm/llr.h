@@ -134,6 +134,15 @@ public:
    */
   LLR_calc_unit(short int Dint1, short int Dint2, short int Dint3);
 
+    
+  /*!
+   * \brief Constructor, using a specific table resolution.
+   *
+   * See init_llr_tables() for more details on the parameters.
+   */
+  LLR_calc_unit(short int Dint1, short int Dint2, short int Dint3, short int Dint4);
+    
+    
   /*! \brief Set the quantization and table parameters
 
     \param Dint1 Determines the relation between LLR represented as
@@ -164,6 +173,12 @@ public:
   */
   void init_llr_tables(short int Dint1 = 12, short int Dint2 = 300,
                        short int Dint3 = 7);
+  
+  //! Set the internal LLR resolution
+  void init_llr_bounds(short int Dint4 = 8*sizeof(QLLR)-4);
+    
+  //! Get the maximum internal LLR value
+  QLLR get_qllr_max() const {return qllr_max;}
 
   //! Convert a "real" LLR value to an LLR type
   QLLR to_qllr(double l) const;
@@ -211,6 +226,9 @@ public:
 
   //! Retrieve the table resolution values
   ivec get_Dint();
+    
+  //! Sum of QLLRs, respecting the \c qllr_max
+  inline QLLR qsum(QLLR a, QLLR b) const;
 
   //! Print some properties of the LLR calculation unit in plain text
   friend ITPP_EXPORT std::ostream &operator<<(std::ostream &os, const LLR_calc_unit &l);
@@ -223,7 +241,10 @@ private:
   ivec logexp_table;
 
   //! Decoder (lookup-table) parameters
-  short int Dint1, Dint2, Dint3;
+  short int Dint1, Dint2, Dint3, Dint4;
+    
+  //! Maximum and minimum values
+  QLLR qllr_max;
 };
 
 /*!
@@ -244,15 +265,15 @@ inline double LLR_calc_unit::to_double(QLLR l) const
 
 inline QLLR LLR_calc_unit::to_qllr(double l) const
 {
-  double QLLR_MAX_double = to_double(QLLR_MAX);
+  double qllr_max_double = to_double(qllr_max);
   // Don't abort when overflow occurs, just saturate the QLLR
-  if (l > QLLR_MAX_double) {
+  if (l > qllr_max_double) {
     it_info_debug("LLR_calc_unit::to_qllr(): LLR overflow");
     return QLLR_MAX;
   }
-  if (l < -QLLR_MAX_double) {
+  if (l < -qllr_max_double) {
     it_info_debug("LLR_calc_unit::to_qllr(): LLR overflow");
-    return -QLLR_MAX;
+    return -qllr_max;
   }
   return static_cast<QLLR>(std::floor(0.5 + (1 << Dint1) * l));
 }
@@ -290,12 +311,23 @@ inline QLLR LLR_calc_unit::jaclog(QLLR a, QLLR b) const
     x = b - a;
   }
 
-  if (maxab >= QLLR_MAX)
-    return QLLR_MAX;
+  if (maxab >= qllr_max)
+    return qllr_max;
   else
     return (maxab + logexp(x));
 }
 
+inline QLLR LLR_calc_unit::qsum(QLLR a, QLLR b) const
+{
+    QLLR c = a + b;
+    if( c > qllr_max)
+        return qllr_max;
+    else if( c < -qllr_max)
+        return -qllr_max;
+    else
+        return c;
+}
+    
 }
 
 #endif

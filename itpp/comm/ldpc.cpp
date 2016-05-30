@@ -1570,16 +1570,16 @@ int LDPC_Code::bp_decode(const QLLRvec &LLRin, QLLRvec &LLRout)
 	 */
 	QLLR m0 = mcv[iind[i]];
         mvc[i] = LLRin(i);
-        LLRout(i) = LLRin(i) + m0;
+        LLRout(i) = llrcalc.qsum(LLRin(i), m0);
         break;
       }
       case 2: {
         QLLR m0 = mcv[iind[i]];
         int i1 = i + nvar;
         QLLR m1 = mcv[iind[i1]];
-        mvc[i] = LLRin(i) + m1;
-        mvc[i1] = LLRin(i) + m0;
-        LLRout(i) = mvc[i1] + m1;
+        mvc[i] = llrcalc.qsum(LLRin(i), m1);
+        mvc[i1] = llrcalc.qsum(LLRin(i), m0);
+        LLRout(i) = llrcalc.qsum(mvc[i1], m1);
         break;
       }
       case 3: {
@@ -1589,39 +1589,23 @@ int LDPC_Code::bp_decode(const QLLRvec &LLRin, QLLRvec &LLRout)
         QLLR m1 = mcv[iind[i1]];
         int i2 = i1 + nvar;
         QLLR m2 = mcv[iind[i2]];
-        LLRout(i) = LLRin(i) + m0 + m1 + m2;
-        mvc[i0] = LLRout(i) - m0;
-        mvc[i1] = LLRout(i) - m1;
-        mvc[i2] = LLRout(i) - m2;
-        break;
-      }
-      case 4: {
-        int i0 = i;
-        QLLR m0 = mcv[iind[i0]];
-        int i1 = i0 + nvar;
-        QLLR m1 = mcv[iind[i1]];
-        int i2 = i1 + nvar;
-        QLLR m2 = mcv[iind[i2]];
-        int i3 = i2 + nvar;
-        QLLR m3 = mcv[iind[i3]];
-        LLRout(i) = LLRin(i) + m0 + m1 + m2 + m3;
-        mvc[i0] = LLRout(i) - m0;
-        mvc[i1] = LLRout(i) - m1;
-        mvc[i2] = LLRout(i) - m2;
-        mvc[i3] = LLRout(i) - m3;
+        LLRout(i) = llrcalc.qsum(llrcalc.qsum(llrcalc.qsum(LLRin(i), m0), m1), m2);
+        mvc[i0] = llrcalc.qsum(LLRout(i), -m0);
+        mvc[i1] = llrcalc.qsum(LLRout(i), -m1);
+        mvc[i2] = llrcalc.qsum(LLRout(i), -m2);
         break;
       }
       default:   { // differential update
         QLLR mvc_temp = LLRin(i);
         int index_iind = i; // tracks i+jp*nvar
         for (int jp = 0; jp < sumX1(i); jp++) {
-          mvc_temp +=  mcv[iind[index_iind]];
+          mvc_temp = llrcalc.qsum(mvc_temp, mcv[iind[index_iind]]);
           index_iind += nvar;
         }
         LLRout(i) = mvc_temp;
         index_iind = i;  // tracks i+j*nvar
         for (int j = 0; j < sumX1[i]; j++) {
-          mvc[index_iind] = mvc_temp - mcv[iind[index_iind]];
+          mvc[index_iind] = llrcalc.qsum(mvc_temp, -mcv[iind[index_iind]]);
           index_iind += nvar;
         }
       }
@@ -1675,7 +1659,7 @@ QLLRvec LDPC_Code::soft_syndrome_check(const QLLRvec &LLR) const
   int i,j,vi,vind;
 
   for (j=0; j<ncheck; j++) {
-    result(j)=-QLLR_MAX;
+    result(j)=-llrcalc.get_qllr_max();
     vind=j;
     for (i=0; i<sumX2(j); i++) {
       vi=V(vind);

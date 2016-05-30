@@ -35,20 +35,29 @@ namespace itpp
 
 LLR_calc_unit::LLR_calc_unit()
 {
+  init_llr_bounds();
   init_llr_tables();
 }
 
 LLR_calc_unit::LLR_calc_unit(short int d1, short int d2, short int d3)
 {
+  init_llr_bounds();
+  init_llr_tables(d1, d2, d3);
+}
+
+LLR_calc_unit::LLR_calc_unit(short int d1, short int d2, short int d3, short int d4)
+{
+  init_llr_bounds(d4);
   init_llr_tables(d1, d2, d3);
 }
 
 ivec LLR_calc_unit::get_Dint()
 {
-  ivec r(3);
+  ivec r(4);
   r(0) = Dint1;
   r(1) = Dint2;
   r(2) = Dint3;
+  r(3) = Dint4;
   return r;
 }
 
@@ -58,6 +67,14 @@ void LLR_calc_unit::init_llr_tables(short int d1, short int d2, short int d3)
   Dint2 = d2;      // number of entries in table for LLR operations
   Dint3 = d3;      // table resolution is 2^(-(Dint1-Dint3))
   logexp_table = construct_logexp_table();
+}
+    
+void LLR_calc_unit::init_llr_bounds(short int d4)
+{
+  // The sum of two QLLRs must not overflow
+  it_assert(d4 <= 8*sizeof(QLLR)-4, "LLR_calc_unit::init_llr_bounds(): Resolution too large!");
+  Dint4 = d4;
+  qllr_max = (1 << (Dint4-1)) -1;
 }
 
 ivec LLR_calc_unit::construct_logexp_table()
@@ -130,13 +147,13 @@ QLLR LLR_calc_unit::Boxplus(QLLR a, QLLR b) const
 
   if (Dint2 == 0) {  // logmax approximation - avoid looking into empty table
     // Don't abort when overflowing, just saturate the QLLR
-    if (term1 > QLLR_MAX) {
+    if (term1 > qllr_max) {
       it_info_debug("LLR_calc_unit::Boxplus(): LLR overflow");
-      return QLLR_MAX;
+      return qllr_max;
     }
-    if (term1 < -QLLR_MAX) {
+    if (term1 < -qllr_max) {
       it_info_debug("LLR_calc_unit::Boxplus(): LLR overflow");
-      return -QLLR_MAX;
+      return -qllr_max;
     }
     return term1;
   }
@@ -148,13 +165,13 @@ QLLR LLR_calc_unit::Boxplus(QLLR a, QLLR b) const
   QLLR result = term1 + term2 - term3;
 
   // Don't abort when overflowing, just saturate the QLLR
-  if (result > QLLR_MAX) {
+  if (result > qllr_max) {
     it_info_debug("LLR_calc_unit::Boxplus() LLR overflow");
-    return QLLR_MAX;
+    return qllr_max;
   }
-  if (result < -QLLR_MAX) {
+  if (result < -qllr_max) {
     it_info_debug("LLR_calc_unit::Boxplus() LLR overflow");
-    return -QLLR_MAX;
+    return -qllr_max;
   }
   return result;
 }
@@ -167,7 +184,7 @@ std::ostream &operator<<(std::ostream &os, const LLR_calc_unit &lcu)
   << pow2(static_cast<double>(-lcu.Dint1)) << std::endl;
   os << "The LLR scale factor is " << (1 << lcu.Dint1) << std::endl;
   os << "The largest LLR that can be represented is "
-  << lcu.to_double(QLLR_MAX) << std::endl;
+  << lcu.to_double(lcu.qllr_max) << std::endl;
   os << "The table resolution is "
   << pow2(static_cast<double>(lcu.Dint3 - lcu.Dint1)) << std::endl;
   os << "The number of entries in the table is " << lcu.Dint2 << std::endl;

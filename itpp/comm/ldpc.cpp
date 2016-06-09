@@ -39,7 +39,7 @@ namespace itpp
  * This has to be global since it is used in LDPC_Generator and LDPC_Code
  * classes
  */
-static const int LDPC_binary_file_version = 3;
+extern const int LDPC_binary_file_version = 3;
 
 // ---------------------------------------------------------------------------
 // LDPC_Parity

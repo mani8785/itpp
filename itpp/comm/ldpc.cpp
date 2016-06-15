@@ -1002,10 +1002,7 @@ ivec LDPC_Generator_Systematic::construct(LDPC_Parity* const H,
 void LDPC_Generator_Systematic::save(const std::string& filename) const
 {
   it_file f(filename);
-  int ver;
-  f >> Name("Fileversion") >> ver;
-  it_assert(ver == LDPC_binary_file_version,
-            "LDPC_Generator_Systematic::save(): Unsupported file format");
+  f << Name("Fileversion") << LDPC_binary_file_version;
   f << Name("G_type") << get_type();
   f << Name("G") << G;
   f.close();
@@ -1306,6 +1303,7 @@ void LDPC_Code::save_code(const std::string& filename) const
   f << Name("H_defined") << H_defined;
   f << Name("G_defined") << G_defined;
   f << Name("nvar") << nvar;
+  f << Name("ncheck") << ncheck;
   f << Name("ncheck_lin_indep") << ncheck_lin_indep;
   f << Name("C") << C;
   f << Name("V") << V;

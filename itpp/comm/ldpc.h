@@ -131,7 +131,13 @@ public:
   }
     
   int get_ncheck_lin_indep() const {
-        return GF2mat(full(H)).row_rank();
+        if(nvar < 1e5){
+            return GF2mat(full(H)).row_rank();
+        }
+        else{
+            it_info("LDPC_Parity::get_ncheck_lin_indep(): Code too large to determine rank, returning nchek");
+            return ncheck;
+        }
   }
 
   //! Set element (i,j) of the parity check matrix to value

@@ -131,7 +131,7 @@ public:
   }
     
   int get_ncheck_lin_indep() const {
-        if(nvar < 1e5){
+        if(nvar < 5e4){
             return GF2mat(full(H)).row_rank();
         }
         else{
@@ -175,6 +175,9 @@ public:
 
   //! Save matrix to \c alist_file text file in alist format
   void save_alist(const std::string& alist_file) const;
+    
+  ivec get_colsum() const {return sumX1;}
+  ivec get_rowsum() const {return sumX2;}
 
 protected:
   //! Flag that indicates proper initialization

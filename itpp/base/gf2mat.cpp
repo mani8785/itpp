@@ -743,10 +743,10 @@ found:
 }
 
 
-int GF2mat::row_echelon(bool keep_zero_rows){
+ivec GF2mat::row_echelon(){
     int mm=0;
     int nn=0;
-    
+    ivec row_order = linspace_fixed_step(0,nrows-1); 
     while(mm<nrows && nn<ncols){
         // Find the first row that has a '1' in column nn
         ivec idx = mm + find(get_col(nn).get(mm,nrows-1));
@@ -754,6 +754,8 @@ int GF2mat::row_echelon(bool keep_zero_rows){
             int kk = idx(0);
             // Swap rows
             swap_rows(mm, kk);
+            row_order(mm)=kk;
+            row_order(kk)=mm;
             // Subtract row from other rows
             idx.del(0);
             for(int ii=0; ii<length(idx); ii++)
@@ -766,16 +768,14 @@ int GF2mat::row_echelon(bool keep_zero_rows){
         }
     }
     // Remove zero rows
-    mm = nrows-1;
-    while(sum(to_ivec(get_row(mm))) == 0){
-        mm--;
+    int nrows_old = nrows;
+    int nrows_new = nrows;
+    while(sum(to_ivec(get_row(nrows_new-1))) == 0){
+        nrows_new--;
     }
-    if( keep_zero_rows == false){
-        set_size(mm+1, ncols, true);
-        nrows = mm+1;
-    }
+    set_size(nrows_new, ncols, true);
     
-    return mm+1;
+    return row_order.right(nrows_old-nrows);
 }
 
 

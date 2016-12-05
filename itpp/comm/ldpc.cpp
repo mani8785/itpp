@@ -897,13 +897,13 @@ ivec LDPC_Generator_Systematic::construct(LDPC_Parity* const H,
 {
   int nvar = H->get_nvar();
   int ncheck = H->get_ncheck();
-  int ncheck_lin_indep = H->get_ncheck_lin_indep();
   // create dense representation of parity check matrix
   GF2mat Hd(H->get_H());
     
-  // remove linearly dependent rows
-  int parity_check_rank = Hd.row_echelon();
-  it_assert(parity_check_rank == ncheck_lin_indep, "LDPC_Generator_Systematic::construct(): Rank mismatch");
+  // Convert to row-echelon form
+  ivec lin_dep_rows =  Hd.row_echelon();
+  int ncheck_lin_indep = ncheck- length(lin_dep_rows);
+  int parity_check_rank = ncheck_lin_indep;
 
   // -- Determine initial column ordering --
   ivec col_order(nvar);

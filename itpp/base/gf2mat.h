@@ -383,10 +383,10 @@ public:
   /*!  \brief Put matrix into row-reduced echelon form
   
   This function applies linear row operations to remove linearly dependent
-  rows, effectively making the matrix of full row rank. The return value
-  is the number of linearly independent rows.
+  rows, effectively making the matrix of full row rank.
+  The return value is the indices of the rows that have been removed.
   */
-  int row_echelon(bool keep_zero_rows = false);
+  ivec row_echelon();
   
 
   // ----- Operators -----------

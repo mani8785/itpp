@@ -37,6 +37,11 @@
 #include <itpp/comm/channel_code.h>
 #include <itpp/itexports.h>
 
+namespace lut_ldpc
+{
+    class LDPC_Code_LUT;
+}
+
 namespace itpp
 {
 
@@ -71,7 +76,7 @@ namespace itpp
 class ITPP_EXPORT LDPC_Parity
 {
   friend class LDPC_Code;
-  friend class LDPC_Code_LUT;
+  friend class lut_ldpc::LDPC_Code_LUT;
 public:
   //! Default constructor
   LDPC_Parity(): init_flag(false) {}
